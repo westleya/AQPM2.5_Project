@@ -18,8 +18,8 @@ import BackgroundGeolocation from 'react-native-mauron85-background-geolocation'
 // Where all our data is obtained
 const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=40.78756024557722&location_lng=-111.84837341308594&start=";
 // TODO: get the phone's gps
-// missing "2018-07-08T15:26:05Z" &end= "2018-07-09T15:26:05Z" which are added
-// just before making the fetch
+// missing: "2018-07-08T15:26:05Z" &end= "2018-07-09T15:26:05Z". (timeframe)
+// Added just before making the fetch.
 export default class HomeScreen extends Component {
 
   constructor(props) {
@@ -41,19 +41,33 @@ export default class HomeScreen extends Component {
       fastestInterval:20000, // fastest time (ms) app can handle location updates
       activitiesInterval:10000 // rate at which phone movements are recognized
     });
-    // Just starting with the last 24 hours
-    today = moment().format();
-    yesterday = moment().subtract(1, 'days').format();
 
-    // Change today and yesterday to match api requirements
-    today_formatted = today.substring(0, 19) + 'Z';
-    yesterday_fromatted = yesterday.substring(0, 19) + 'Z';
-    APIurlTotal = APIurl + yesterday_fromatted + "&end=" + today_formatted;
+    // Handle locations
+    BackgroundGeolocation.on('location', (location) => {
 
-    // Get data from the database
-    return fetch(APIurlTotal)
-      .then(response => response.json())
-      .then(data =>{ this.setState({ data})})
+      // Background tasks are necessary for long-running operations on iOS
+      BackgroundGeolocation.startTask( taskKey => {
+        location
+        // Just starting with the last 24 hours
+        today = moment().format();
+        yesterday = moment().subtract(1, 'days').format();
+
+        // Change today and yesterday to match api requirements
+        today_formatted = today.substring(0, 19) + 'Z';
+        yesterday_fromatted = yesterday.substring(0, 19) + 'Z';
+        APIurlTotal = APIurl + yesterday_fromatted + "&end=" + today_formatted;
+
+        // Get data from the database
+        fetch(APIurlTotal)
+          .then(response => response.json())
+          .then(data =>{ this.setState({ data})});
+
+        BackgroundGeolocation.endTask(taskKey);
+      });
+
+    }
+    );
+
   }
 
   static navigationOptions = {
