@@ -1,8 +1,15 @@
 import React from 'react';
 import { Platform, StatusBar, StyleSheet, View } from 'react-native';
-import { AppLoading, Asset, Font, Icon } from 'expo';
+import Expo, {Constants, Location, Permissions, SQLite, WebBrowser, AppLoading, Asset, Font, Icon } from 'expo';
 import AppNavigator from './navigation/AppNavigator';
 //import BackgroundGeolocation from 'react-native-background-geolocation';
+
+//Make a database
+// const db = SQLite.AreaChart('db.db');
+
+// class LocationData extends React.Component {
+
+// }
 
 export default class App extends React.Component {
   state = {

@@ -1,20 +1,15 @@
 import React, {Component} from 'react';
 import {
-  Image,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import { WebBrowser } from 'expo';
 import moment from 'moment';
-import { MonoText } from '../components/StyledText';
 import { AreaChart, LineChart, Grid, YAxis, XAxis } from 'react-native-svg-charts';
 import {G, Line, LinearGradient, Stop, Defs} from 'react-native-svg';
-import * as scale from 'd3-scale';
-//import BackgroundGeolocation from 'react-native-background-geolocation';
+
+// https://github.com/JesperLekland/react-native-svg-charts-examples/blob/master/storybook/stories/both-axes.js
 
 // Where all our data is obtained
 const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=40.78756024557722&location_lng=-111.84837341308594&start=";
@@ -63,6 +58,9 @@ export default class HomeScreen extends Component {
 
     pm_data = [];
     time_data = [];
+    const axesSvg = { fontSize: 10, fill: 'grey' };
+    const verticalContentInset = { top: 10, bottom: 10 }
+    const xAxisHeight = 30
 
     const Gradient = () => (
       <Defs key={'gradient'}>
@@ -72,49 +70,48 @@ export default class HomeScreen extends Component {
         </LinearGradient>
       </Defs>
     )
-    // Create an array of PM 2.5 data
-    for( let i = 0; i < data.length; i++) {
+    // Create an array of PM 2.5 data and time data. The data object passed from
+    // the AQ&U api is from most recent data to least recent. So, I have to invert the order.
+    length_data = data.length;
+    for( let i = length_data - 1; i >= 0; i--) {
       pm_data.push(data[i].pm25);
-      time_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("HH:mm"));
+      if(i % (length_data / 6) == 0) {
+        time_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("HH:mm"));
+      }
     }
-    console.log(time_data);
+    console.log(data);
     return (
       // Display the data
-      <View style={{height:260, flexDirection: 'row', margin: 20, marginTop:60}}>
+      <View style={{height:250, flexDirection: 'row', padding:20, marginTop:60}}>
+
           <YAxis
           data={pm_data}
-          numberOfTicks={10}
-          svg={{fill:'black',
-                fontSize:12,
-          }}
+          style={{marginBottom:xAxisHeight}}
+          numberOfTicks={8}
+          svg={axesSvg}
           formatLabel={value => ' ' + value + ' '}
-          contentInset={{ top: 10, bottom: 10 }}
+          contentInset={verticalContentInset}
           />
-
-          <XAxis
-              data={ time_data }
-              svg={{
-                fill: 'black',
-                fontSize: 8,
-                fontWeight: 'bold',
-              }}
-              //scale = {scale.scaleBand}
-              numberOfTicks={ 6 }
-              contentInset={{ left: 10, right: 25 }}
-              formatLabel={ (value) => value }
-              
-          />
-
+          <View style={{flex:1, marginLeft:10, marginRight:10}}>
           <LineChart
-          style={{ flex: 1, marginLeft: 8 }}
+          style={{ flex: 1}}
             data={ pm_data }
             svg={{stroke: 'url(#gradient)', strokeWidth:2}}
-            contentInset={{ top: 10, bottom: 10 }}
+            contentInset={verticalContentInset}
             >
             <Gradient/>
           </LineChart>
 
-
+          <XAxis
+              style={{marginHorizontal:-10, height:xAxisHeight}}
+              data={ time_data }
+              svg={axesSvg}
+              numberOfTicks={ 6 }
+              contentInset={{ left: 10, right: 15 }}              
+              formatLabel={ (_, index) => (parseInt(time_data[index].substring(0,2))%12) + ":00"}
+              
+          />
+          </View>
       </View>
     );
   }
