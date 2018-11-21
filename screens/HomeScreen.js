@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Text,
   View,
+  AppRegistry,
 } from 'react-native';
 import moment from 'moment';
 import { AreaChart, LineChart, Grid, YAxis, XAxis } from 'react-native-svg-charts';
@@ -12,6 +13,7 @@ import {G, Line, LinearGradient, Stop, Defs} from 'react-native-svg';
 // https://github.com/JesperLekland/react-native-svg-charts-examples/blob/master/storybook/stories/both-axes.js
 
 // Where all our data is obtained
+const breathing_rate = .0001; // in cubic meters per second.
 const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=40.78756024557722&location_lng=-111.84837341308594&start=";
 // TODO: get the phone's gps
 // missing: "2018-07-08T15:26:05Z" &end= "2018-07-09T15:26:05Z". (timeframe)
@@ -22,6 +24,8 @@ export default class HomeScreen extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      total_exposure_text: "Total Exposure: ",
+      average_exposure_text:"Average PM 2.5 Level: ",
       data:null};
 
   }
@@ -73,16 +77,24 @@ export default class HomeScreen extends Component {
     // Create an array of PM 2.5 data and time data. The data object passed from
     // the AQ&U api is from most recent data to least recent. So, I have to invert the order.
     length_data = data.length;
+    total_exposure = 0.0;
+    average_exposure = 0.0;
+
     for( let i = length_data - 1; i >= 0; i--) {
-      pm_data.push(data[i].pm25);
+      pm_25 = data[i].pm25;
+      total_exposure += pm_25 * breathing_rate * 60;
+      average_exposure += pm_25;
+      pm_data.push(pm_25);
       if(i % (length_data / 6) == 0) {
         time_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("HH:mm"));
       }
     }
-    console.log(data);
+    average_exposure = average_exposure / length_data;
+    console.log(data);    
     return (
       // Display the data
-      <View style={{height:250, flexDirection: 'row', padding:20, marginTop:60}}>
+      <View style={{padding:20}}>
+      <View style={{height:250, flexDirection: 'row', marginTop:60}}>
 
           <YAxis
           data={pm_data}
@@ -91,7 +103,9 @@ export default class HomeScreen extends Component {
           svg={axesSvg}
           formatLabel={value => ' ' + value + ' '}
           contentInset={verticalContentInset}
-          />
+          >
+          </YAxis>
+
           <View style={{flex:1, marginLeft:10, marginRight:10}}>
           <LineChart
           style={{ flex: 1}}
@@ -107,11 +121,27 @@ export default class HomeScreen extends Component {
               data={ time_data }
               svg={axesSvg}
               numberOfTicks={ 6 }
-              contentInset={{ left: 10, right: 15 }}              
+              contentInset={{ left: 15, right: 15 }}              
               formatLabel={ (_, index) => (parseInt(time_data[index].substring(0,2))%12) + ":00"}
-              
-          />
+          >
+          </XAxis>
           </View>
+      </View>
+
+      <Text/>
+      <Text/>
+      <Text style = {styles.getStartedText} >
+          {this.state.total_exposure_text}
+          {Math.round(total_exposure)} 
+          {" µg"}
+      </Text>
+      <Text/>
+      <Text/>
+      <Text style = {styles.getStartedText} >
+          {this.state.average_exposure_text}
+          {Math.round(average_exposure)} 
+          {" µg / m³"}
+      </Text>
       </View>
     );
   }
@@ -188,6 +218,7 @@ const styles = StyleSheet.create({
     color: 'rgba(96,100,109, 1)',
     lineHeight: 24,
     textAlign: 'center',
+    fontWeight:'bold',
   },
   tabBarInfoContainer: {
     position: 'absolute',
@@ -229,3 +260,5 @@ const styles = StyleSheet.create({
     color: '#2e78b7',
   },
 });
+
+AppRegistry.registerComponent('TextInANest', () => TextInANest);
