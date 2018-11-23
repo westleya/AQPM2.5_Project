@@ -26,6 +26,7 @@ export default class HomeScreen extends Component {
     this.state = {
       total_exposure_text: "Total Exposure: ",
       average_exposure_text:"Average PM 2.5 Level: ",
+      current_exposure_text:"Current PM 2.5 Level: ",
       data:null};
 
   }
@@ -61,7 +62,8 @@ export default class HomeScreen extends Component {
     const { data } = this.state;
 
     pm_data = [];
-    time_data = [];
+    //day_data = [];
+    hour_data = [];
     const axesSvg = { fontSize: 10, fill: 'grey' };
     const verticalContentInset = { top: 10, bottom: 10 }
     const xAxisHeight = 30
@@ -86,16 +88,19 @@ export default class HomeScreen extends Component {
       average_exposure += pm_25;
       pm_data.push(pm_25);
       if(i % (length_data / 6) == 0) {
-        time_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("HH:mm"));
+        hour_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("HH:mm"));
+        //day_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("MMM DD"));
       }
     }
     average_exposure = average_exposure / length_data;
     console.log(data);    
     return (
       // Display the data
-      <View style={{padding:20}}>
-      <View style={{height:250, flexDirection: 'row', marginTop:60}}>
-
+      <View style={{padding:20, marginTop:60}}>
+          <Text style = {styles.getStartedText} >
+            {"PM 2.5 Concentration (µg / m³)"}
+          </Text>
+      <View style={{height:250, flexDirection: 'row'}}>
           <YAxis
           data={pm_data}
           style={{marginBottom:xAxisHeight}}
@@ -118,11 +123,11 @@ export default class HomeScreen extends Component {
 
           <XAxis
               style={{marginHorizontal:-10, height:xAxisHeight}}
-              data={ time_data }
+              data={ hour_data }
               svg={axesSvg}
               numberOfTicks={ 6 }
               contentInset={{ left: 15, right: 15 }}              
-              formatLabel={ (_, index) => (parseInt(time_data[index].substring(0,2))%12) + ":00"}
+              formatLabel={ (_, index) => (parseInt(hour_data[index].substring(0,2))%12) + ":00"}
           >
           </XAxis>
           </View>
@@ -132,14 +137,21 @@ export default class HomeScreen extends Component {
       <Text/>
       <Text style = {styles.getStartedText} >
           {this.state.total_exposure_text}
-          {Math.round(total_exposure)} 
+          {Math.round(total_exposure * 10) / 10} 
           {" µg"}
       </Text>
       <Text/>
       <Text/>
       <Text style = {styles.getStartedText} >
           {this.state.average_exposure_text}
-          {Math.round(average_exposure)} 
+          {Math.round(average_exposure * 10) / 10} 
+          {" µg / m³"}
+      </Text>
+      <Text/>
+      <Text/>
+      <Text style = {styles.getStartedText} >
+          {this.state.current_exposure_text}
+          {Math.round(pm_data[length_data - 1] * 10) / 10} 
           {" µg / m³"}
       </Text>
       </View>
