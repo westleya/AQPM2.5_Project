@@ -31,6 +31,14 @@ export default class HomeScreen extends Component {
 
   }
 
+  static navigationOptions = {
+    headerTitle: (
+    <Image 
+    style = {{alignSelf: 'center'}}
+    source={require("./assets/title.png")}/>
+    ),
+  };
+
   componentDidMount() {
     // Just starting with the last 24 hours
     today = moment().format();
@@ -46,10 +54,6 @@ export default class HomeScreen extends Component {
           .then(response => response.json())
           .then(data =>{ this.setState({ data})});
   }
-
-  static navigationOptions = {
-    header: null,
-  };
 
   render() {
     if(!this.state.data) {
@@ -88,7 +92,7 @@ export default class HomeScreen extends Component {
       average_exposure += pm_25;
       pm_data.push(pm_25);
       if(i % (length_data / 6) == 0) {
-        hour_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("HH:mm"));
+        hour_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("hh:mm"));
         //day_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("MMM DD"));
       }
     }
@@ -127,7 +131,7 @@ export default class HomeScreen extends Component {
               svg={axesSvg}
               numberOfTicks={ 6 }
               contentInset={{ left: 15, right: 15 }}              
-              formatLabel={ (_, index) => (parseInt(hour_data[index].substring(0,2))%12) + ":00"}
+              formatLabel={ (_, index) => (hour=parseInt(hour_data[index].substring(0,2))) + ":00"}
           >
           </XAxis>
           </View>

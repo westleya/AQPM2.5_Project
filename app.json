@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "newProject",
+    "name": "Personal Air Quality Exposure",
     "description": "A very interesting project.",
     "slug": "newProject",
     "privacy": "public",
@@ -8,10 +8,9 @@
     "platforms": ["ios", "android"],
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
     "splash": {
       "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
+      "resizeMode": "fill",
       "backgroundColor": "#ffffff"
     },
     "updates": {
