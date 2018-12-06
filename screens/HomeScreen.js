@@ -5,6 +5,7 @@ import {
   Text,
   View,
   AppRegistry,
+  Image,
 } from 'react-native';
 import moment from 'moment';
 import { AreaChart, LineChart, Grid, YAxis, XAxis } from 'react-native-svg-charts';
@@ -25,8 +26,8 @@ export default class HomeScreen extends Component {
     super(props);
     this.state = {
       total_exposure_text: "Total Exposure: ",
-      average_exposure_text:"Average PM 2.5 Level: ",
-      current_exposure_text:"Current PM 2.5 Level: ",
+      average_exposure_text:"Average PM2.5 Level: ",
+      current_exposure_text:"Current PM2.5 Level: ",
       data:null};
 
   }
@@ -35,7 +36,7 @@ export default class HomeScreen extends Component {
     headerTitle: (
     <Image 
     style = {{alignSelf: 'center'}}
-    source={require("./assets/title.png")}/>
+    source={require('../assets/images/title.png')}/>
     ),
   };
 
@@ -59,7 +60,7 @@ export default class HomeScreen extends Component {
     if(!this.state.data) {
       // Generic loading screen
       return (
-        <Text>Loading...</Text>
+        <Text style={{alignSelf:'center', paddingTop:250, fontSice:20}}>Loading...</Text>
       );
     }
     // Gets data we've loaded from the AQ&U API
@@ -92,7 +93,7 @@ export default class HomeScreen extends Component {
       average_exposure += pm_25;
       pm_data.push(pm_25);
       if(i % (length_data / 6) == 0) {
-        hour_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("hh:mm"));
+        hour_data.push(parseInt(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("hh")) + ':00');
         //day_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("MMM DD"));
       }
     }
@@ -100,14 +101,14 @@ export default class HomeScreen extends Component {
     console.log(data);    
     return (
       // Display the data
-      <View style={{padding:20, marginTop:60}}>
+      <View style={{padding:20, marginTop:20 }}>
           <Text style = {styles.getStartedText} >
-            {"PM 2.5 Concentration (µg / m³)"}
+            {"PM2.5 Concentration (µg / m³)"}
           </Text>
       <View style={{height:250, flexDirection: 'row'}}>
           <YAxis
           data={pm_data}
-          style={{marginBottom:xAxisHeight}}
+          style={{marginBottom:xAxisHeight - 1, borderRightWidth:1, borderColor: 'rgba(96,100,109, 1)'}}
           numberOfTicks={8}
           svg={axesSvg}
           formatLabel={value => ' ' + value + ' '}
@@ -126,12 +127,12 @@ export default class HomeScreen extends Component {
           </LineChart>
 
           <XAxis
-              style={{marginHorizontal:-10, height:xAxisHeight}}
+              style={{paddingTop:5, marginHorizontal:-10, height:xAxisHeight, borderTopWidth:1, borderColor: 'rgba(96,100,109, 1)'}}
               data={ hour_data }
               svg={axesSvg}
               numberOfTicks={ 6 }
               contentInset={{ left: 15, right: 15 }}              
-              formatLabel={ (_, index) => (hour=parseInt(hour_data[index].substring(0,2))) + ":00"}
+              formatLabel={ (_, index) => (hour=hour_data[index])}
           >
           </XAxis>
           </View>
