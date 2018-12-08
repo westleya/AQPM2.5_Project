@@ -10,28 +10,37 @@ import {
 import moment from 'moment';
 import { AreaChart, LineChart, Grid, YAxis, XAxis } from 'react-native-svg-charts';
 import {G, Line, LinearGradient, Stop, Defs} from 'react-native-svg';
+import {SQLite,} from 'expo';
 
+// Documentation for the svg charts I used to show the data:
 // https://github.com/JesperLekland/react-native-svg-charts-examples/blob/master/storybook/stories/both-axes.js
 
-// Where all our data is obtained
 const breathing_rate = .0001; // in cubic meters per second.
+// Where all our data is obtained
 const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=40.78756024557722&location_lng=-111.84837341308594&start=";
-// TODO: get the phone's gps
 // missing: "2018-07-08T15:26:05Z" &end= "2018-07-09T15:26:05Z". (timeframe)
-// Added just before making the fetch.
+// Added just before making the fetch, acquired from the db.
+// Open the database
+const db = SQLite.openDatabase('db.db');
 
-export default class HomeScreen extends Component {
+// TODO: get the phone's gps
+
+
+export default class ReportScreen extends Component {
 
   constructor(props) {
     super(props);
+
     this.state = {
       total_exposure_text: "Total Exposure: ",
       average_exposure_text:"Average PM2.5 Level: ",
       current_exposure_text:"Current PM2.5 Level: ",
+      timeframe:"",
       data:null};
 
   }
 
+  //AQ&U logo
   static navigationOptions = {
     headerTitle: (
     <Image 
@@ -41,19 +50,27 @@ export default class HomeScreen extends Component {
   };
 
   componentDidMount() {
-    // Just starting with the last 24 hours
-    today = moment().format();
-    yesterday = moment().subtract(1, 'days').format();
-          
-    // Change today and yesterday to match api requirements
-    today_formatted = today.substring(0, 19) + 'Z';
-    yesterday_fromatted = yesterday.substring(0, 19) + 'Z';
-    APIurlTotal = APIurl + yesterday_fromatted + "&end=" + today_formatted;
-          
-    // Get data from the database
-    return fetch(APIurlTotal)
-          .then(response => response.json())
-          .then(data =>{ this.setState({ data})});
+
+    db.transaction(tx=>
+      {tx.executeSql(
+        'select * from settings;',
+        [],(_,{rows:{_array}}) => 
+        console.log(JSON.stringify(_array)))});
+    present = moment().format();
+    present_formatted = present.substring(0, 19) + 'Z';
+
+    // Get data from the server. It's ordered most recent to least recent
+    return db.transaction(tx=>
+      {tx.executeSql(
+        'select timeframe from settings;',
+        [],(_,{rows:{_array}}) => 
+        this.state.timeframe = _array[0].timeframe)
+        .then(r => {moment().subtract(1, this.state.timeframe).format()})
+        .then(past => {past.substring(0, 19) + 'Z'})
+        .then(past_formatted => { APIurl + past_formatted + "&end=" + present_formatted})
+        .then(APIurlTotal => {fetch(APIurlTotal)})
+        .then(response => response.json())
+        .then(responseJson =>{ this.setState({ data: responseJson})})});
   }
 
   render() {
@@ -66,13 +83,14 @@ export default class HomeScreen extends Component {
     // Gets data we've loaded from the AQ&U API
     const { data } = this.state;
 
+    // Arrays for axis ticks and chart data
     pm_data = [];
-    //day_data = [];
-    hour_data = [];
+    timeframe_data = [];
+
+    // Chart constants
     const axesSvg = { fontSize: 10, fill: 'grey' };
     const verticalContentInset = { top: 10, bottom: 10 }
     const xAxisHeight = 30
-
     const Gradient = () => (
       <Defs key={'gradient'}>
         <LinearGradient id={'gradient'} x1={'0%'} y1={'0%'} x2={'0%'} y2={'100%'}>
@@ -93,8 +111,18 @@ export default class HomeScreen extends Component {
       average_exposure += pm_25;
       pm_data.push(pm_25);
       if(i % (length_data / 6) == 0) {
-        hour_data.push(parseInt(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("hh")) + ':00');
-        //day_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("MMM DD"));
+        if(this.state.timeframe === 'day'){
+          timeframe_data.push(parseInt(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("hh")) + ':00');
+        }
+        else if(this.state.timeframe === 'week') {
+          timeframe_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("ddd"));
+        }
+        else if(this.state.timeframe === 'month'){
+          timeframe_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("D"));
+        }
+        else{
+          timeframe_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("MMM"));
+        }
       }
     }
     average_exposure = average_exposure / length_data;
@@ -128,11 +156,11 @@ export default class HomeScreen extends Component {
 
           <XAxis
               style={{paddingTop:5, marginHorizontal:-10, height:xAxisHeight, borderTopWidth:1, borderColor: 'rgba(96,100,109, 1)'}}
-              data={ hour_data }
+              data={ timeframe_data }
               svg={axesSvg}
               numberOfTicks={ 6 }
               contentInset={{ left: 15, right: 15 }}              
-              formatLabel={ (_, index) => (hour=hour_data[index])}
+              formatLabel={ (_, index) => (hour=timeframe_data[index])}
           >
           </XAxis>
           </View>
@@ -278,4 +306,4 @@ const styles = StyleSheet.create({
   },
 });
 
-AppRegistry.registerComponent('TextInANest', () => TextInANest);
+AppRegistry.registerComponent("Personal Air Quality Exposure", () => ReportScreen);

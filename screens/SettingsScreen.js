@@ -6,26 +6,59 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
+import {SQLite,} from 'expo';
+
+// Open the database
+const db = SQLite.openDatabase('db.db');
 
 export default class SettingsScreen extends React.Component {
+  
   constructor(props){
     super(props);
-    this.state ={
-      timeframe:'day',
-      accuracy:'low',
-      frequency:'5',
-    }
+
+    this.state = {
+      timeframe:"",
+      accuracy:"", 
+      frequency:"",};
+
   }
 
+  //AQ&U logo
   static navigationOptions = {
     headerTitle: (
       <Image 
       style = {{alignSelf: 'center'}}
       source={require('../assets/images/title.png')}/>
       ),
-  };
+  }; 
 
+  componentDidMount(){
+    // Default the values in the spinners to those found in the db
+    db.transaction(tx=>{
+      tx.executeSql(
+        'select * from settings;',[],
+        (_,{rows:{_array}}) => 
+        this.setState({
+          timeframe:_array[0].timeframe,
+          accuracy:_array[0].accuracy, 
+          frequency:_array[0].frequency
+        })
+      )
+    });
+  }
+  // 
   render() {
+
+    console.log(this.state.timeframe);
+    console.log(this.state.accuracy);
+    console.log(this.state.frequency);
+    db.transaction(tx => {
+      tx.executeSql(
+        'select * from settings;',
+        [],(_,{rows:{_array}}) => 
+        console.log(JSON.stringify(_array))
+      )
+    });
 
     return (
       <View style={{paddingTop:20}}>
@@ -45,7 +78,8 @@ export default class SettingsScreen extends React.Component {
               mode="dropdown"
               selectedValue={this.state.timeframe}
               itemStyle={styles.itemStyle}
-              onValueChange={(itemValue, itemIndex) => this.setState({timeframe: itemValue})}>
+              onValueChange={itemValue => {this.setState({timeframe: itemValue});
+                db.transaction(tx=>{tx.executeSql('update settings set timeframe = ?;', [itemValue])});}}>
               <Picker.Item label="day" value="day" />
               <Picker.Item label="week" value="week" />
               <Picker.Item label="month" value="month" />
@@ -67,7 +101,8 @@ export default class SettingsScreen extends React.Component {
               mode="dropdown"
               selectedValue={this.state.accuracy}
               itemStyle={styles.itemStyle}
-              onValueChange={(itemValue, itemIndex) => this.setState({accuracy: itemValue})}>
+              onValueChange={itemValue => {this.setState({accuracy: itemValue});
+                db.transaction(tx=>{tx.executeSql('update settings set accuracy = ?;', [itemValue])});}}>
               <Picker.Item label="low" value="low" />
               <Picker.Item label="medium" value="medium" />
               <Picker.Item label="high" value="high" />
@@ -86,9 +121,10 @@ export default class SettingsScreen extends React.Component {
               <Picker
                 style = {styles.picker}
                 mode="dropdown"
-                selectedValue={this.state.timeframe}
+                selectedValue={this.state.frequency.toString()}
                 itemStyle={styles.itemStyle}
-                onValueChange={(itemValue, itemIndex) => this.setState({timeframe: itemValue})}>
+                onValueChange={itemValue => {this.setState({frequency: itemValue});
+                db.transaction(tx=>{tx.executeSql('update settings set frequency = ?;', [itemValue])});}}>
                 <Picker.Item label="5 minutes" value="5" />
                 <Picker.Item label="10 minutes" value="10" />
                 <Picker.Item label="15 minutes" value="15" />

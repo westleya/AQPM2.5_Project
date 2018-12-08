@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 
 
-export default class FAQ extends Component {
+export default class FAQScreen extends Component {
   constructor(props){
     super(props);
     this.state ={
@@ -24,6 +24,7 @@ export default class FAQ extends Component {
     }
   }
 
+  //AQ&U logo
   static navigationOptions = {
     headerTitle: (
     <Image 
@@ -80,14 +81,14 @@ export default class FAQ extends Component {
         </Text>
 
         <TouchableOpacity onPress={()=>this.toggleStatusPM()}>
-          <View style={{borderTopWidth:1, borderTopColor:'rgba(96,100,109, 1)'}}>
+          <View style={styles.break}>
             <Text style={styles.welcome}>
               PM2.5
             </Text>
           </View>
         </TouchableOpacity>
         {renderIf(this.state.statusPM)(
-          <View style={{padding:6, borderTopWidth:1, borderTopColor:'rgba(96,100,109, 1)'}}>
+          <View style={styles.categories}>
             <Text >
               &emsp;PM2.5 is the mass of particulate matter that is smaller than 2.5 µm in diameter, and it is about 1/10th the size of a human hair. This is one of the key pollutants that the US EPA measures because of its potential for adverse health effects, and the Wasatch Front experiences elevated levels of PM2.5 during our wintertime inversions as well as periodically because of dust storms, wild-fires and fireworks. To understand the potential health impacts of PM2.5 concentrations, you can use the following EPA guidance. 24-hour average PM2.5 concentrations greater than:
               {"\n\n"}&emsp;35 µg/m3 are considered unhealthy for sensitive groups
@@ -97,21 +98,21 @@ export default class FAQ extends Component {
               </Text>
             <TouchableOpacity onPress={() => Linking.openURL('https://www.airnow.gov')}>
               <Text style={{alignSelf: 'center', color: 'blue'}}>
-                {"\n"}AirNow{"\n"}
+                {"\n"}AirNow
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
         <TouchableOpacity onPress={()=>this.toggleStatusAQ()}>
-        <View style={{borderTopWidth:1, borderColor:'rgba(96,100,109, 1)'}}>
+        <View style={styles.break}>
             <Text style={styles.welcome}>
               AQ&U Program
             </Text>
         </View>
         </TouchableOpacity>
         {renderIf(this.state.statusAQ)(
-        <View style={{padding:6, borderTopWidth:1, borderTopColor:'rgba(96,100,109, 1)'}}>
+        <View style={styles.categories}>
           <Text >
             &emsp;Over the last few years, low-cost commodity sensors have hit the markets allowing — for the first time — the ability to measure hyperlocal air quality conditions outside of our homes. At the University of Utah, we are building infrastructure that utilizes these new sensors to create accurate measurements of air quality microclimates. 
             {"\n\n"}&emsp;Our Outdoor Air Quality project leverages existing government and community-based air quality efforts to build a dense network of sensors across Salt Lake City. 
@@ -124,21 +125,21 @@ export default class FAQ extends Component {
             </TouchableOpacity>
             <TouchableOpacity onPress={() => Linking.openURL('http://www.aqandu.org/airu_sensor')}>
               <Text style={{alignSelf: 'center', color: 'blue'}}>
-                {"\n"}learn more{"\n"}
+                {"\n"}learn more
               </Text>
             </TouchableOpacity>
         </View>          
         )}
 
         <TouchableOpacity onPress={()=>this.toggleStatusReport()}>
-        <View style={{borderTopWidth:1, borderColor:'rgba(96,100,109, 1)'}}>
+        <View style={styles.break}>
             <Text style={styles.welcome}>
               Your Data Report
             </Text>
         </View>
         </TouchableOpacity>
         {renderIf(this.state.statusReport)(
-        <View style={{padding:6, borderTopWidth:1, borderTopColor:'rgba(96,100,109, 1)'}}>
+        <View style={styles.categories}>
           <Text style={{alignSelf: 'center', fontWeight:'bold'}}>
             Total Exposure
           </Text>
@@ -150,27 +151,28 @@ export default class FAQ extends Component {
             {"\n"}Average PM2.5 Level
           </Text>
           <Text>
-            {"\n"}&emsp;The average PM2.5 Level is the average of all PM2.5 data over the reporting period displayed on your exposure graph.{"\n"}
+            {"\n"}&emsp;The average PM2.5 Level is the average of all PM2.5 data over the reporting period displayed on your exposure graph.
           </Text>
         </View>          
         )}
 
         <TouchableOpacity onPress={()=>this.toggleStatusData()}>
-        <View style={{borderTopWidth:1, borderColor:'rgba(96,100,109, 1)'}}>
+        <View style={styles.break}>
             <Text style={styles.welcome}>
               Your Location Data
             </Text>
         </View>
         </TouchableOpacity>
         {renderIf(this.state.statusData)(
-        <View style={{padding:6, borderTopWidth:1, borderTopColor:'rgba(96,100,109, 1)'}}>
+        <View style={styles.categories}>
           <Text >
             {"\n"}&emsp;We use your phone’s location data only for obtaining PM2.5 data from our servers. The phone’s coordinates and a timestamp for each set of coordinates are saved and stored in a database locally, on your phone.{"\n"}
-            {"\n"}&emsp;Your location data will not be sufficient to properly report your exposure until the app has been on your phone for the  specified time frame. Until then, the app will fill in missing data on the graph using your oldest recorded location.
+            {"\n"}&emsp;Your location data will not be sufficient to properly report your exposure until the app has been on your phone for the  specified time frame. Until then, the app will fill in missing data on the graph using your oldest recorded location.{"\n"}
+            {"\n"}&emsp;This app currently only services the wasatch front. Location data will not be stored for time spent outside of that range and your exposure report will show concentration levels of 0 for the period.
           </Text>
         </View>          
         )}
-        <View style={{borderTopWidth:1, borderTopColor:'rgba(96,100,109, 1)'}}></View>
+        <View style={styles.break}></View>
       </ScrollView>
     );
   }
@@ -183,8 +185,8 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'center',
     fontWeight:'bold',
-    paddingBottom:4,
-    paddingTop:4,
+    paddingBottom:6,
+    paddingTop:6,
   },
   title: {
     fontSize: 32,
@@ -192,6 +194,18 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     textAlign: 'center',
     fontWeight:'bold',
-    paddingBottom:4,
+    paddingBottom:6,
   },
+  categories: {
+    borderTopWidth:1,
+    borderTopColor:'rgba(96,100,109, 1)',
+    padding:6,
+    marginTop:6,
+    marginBottom:6,
+  },
+  break: {
+    borderTopWidth:1,
+    borderTopColor:'rgba(96,100,109, 1)',
+    margin:2,
+  }
 });
