@@ -51,26 +51,25 @@ export default class ReportScreen extends Component {
 
   componentDidMount() {
 
-    db.transaction(tx=>
-      {tx.executeSql(
-        'select * from settings;',
-        [],(_,{rows:{_array}}) => 
-        console.log(JSON.stringify(_array)))});
     present = moment().format();
     present_formatted = present.substring(0, 19) + 'Z';
+    past = "";
+    APIurlTotal = "";
 
-    // Get data from the server. It's ordered most recent to least recent
+    //Get data from the server. It's ordered most recent to least recent
     return db.transaction(tx=>
       {tx.executeSql(
         'select timeframe from settings;',
         [],(_,{rows:{_array}}) => 
-        this.state.timeframe = _array[0].timeframe)
-        .then(r => {moment().subtract(1, this.state.timeframe).format()})
-        .then(past => {past.substring(0, 19) + 'Z'})
-        .then(past_formatted => { APIurl + past_formatted + "&end=" + present_formatted})
-        .then(APIurlTotal => {fetch(APIurlTotal)})
-        .then(response => response.json())
-        .then(responseJson =>{ this.setState({ data: responseJson})})});
+        {this.state.timeframe = _array[0].timeframe;
+          past = moment().subtract(1, this.state.timeframe).format();
+          past_formatted = past.substring(0, 19) + 'Z';
+          APIurlTotal = APIurl + past_formatted + "&end=" + present_formatted;
+          fetch(APIurlTotal)
+          .then(response => response.json())
+          .then(responseJson =>{ this.setState({ data: responseJson})});
+        });
+      });
   }
 
   render() {

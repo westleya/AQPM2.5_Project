@@ -2,6 +2,7 @@ import React from 'react';
 import { Platform, StatusBar, StyleSheet, View } from 'react-native';
 import Expo, { Constants, Location, Permissions, SQLite, WebBrowser, AppLoading, Asset, Font, Icon } from 'expo';
 import AppNavigator from './navigation/AppNavigator';
+import {AsyncStorage} from 'react-native';
 //import BackgroundGeolocation from 'react-native-background-geolocation';
 
 // Make/open a database depending on whether it already exists
@@ -12,10 +13,13 @@ const db = SQLite.openDatabase('db.db');
 
 
 export default class App extends React.Component {
-  state = {
-    isLoadingComplete: false,
-  
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      isLoadingComplete: false,
+    };
+  }
+
 
   // console.log(JSON.stringify(_array));
   // if( _array[0].count < 1) { 
@@ -25,11 +29,17 @@ export default class App extends React.Component {
   // };
   componentDidMount() {
     // Create settings and locationdata tables with corresponding columns.
-    db.transaction(tx => {
-      tx.executeSql('create table if not exists settings (timeframe text, accuracy text, frequency int, notifications int);');
-      tx.executeSql('create table if not exists locationdata (timestamp datetime, latitude double, longitude double);');
-      tx.executeSql('insert into settings (timeframe, accuracy, frequency, notifications) values ("day", "low", 15, 0) where {select count(*) from settings} < 1;');
-    });
+    AsyncStorage.getItem("alreadyLaunched").then(value => {
+      if(value == null){
+           AsyncStorage.setItem('alreadyLaunched', 'true'); // No need to wait for `setItem` to finish, although you might want to handle errors
+           db.transaction(tx => {
+            tx.executeSql('create table if not exists settings (timeframe text, accuracy text, frequency int, notifications int);');
+            tx.executeSql('create table if not exists locationdata (timestamp datetime, latitude double, longitude double);');
+            tx.executeSql('insert into settings (timeframe, accuracy, frequency, notifications) values ("day", "low", 15, 0);');
+          });
+      }
+      });
+
   }
   // Code pulled from https://www.npmjs.com/package/react-native-background-geolocation
   componentWillMount() {
@@ -111,7 +121,9 @@ export default class App extends React.Component {
   }*/
 
   render() {
-      if (!this.state.isLoadingComplete && !this.props.skipLoadingScreen) {
+    console.log('this');
+
+    if (!this.state.isLoadingComplete && !this.props.skipLoadingScreen) {
       return (
         <AppLoading
           startAsync={this._loadResourcesAsync}
@@ -123,11 +135,12 @@ export default class App extends React.Component {
 
       db.transaction(tx=>
         {tx.executeSql(
-          'select * from settings;',
-          [],(_,{rows:{_array}}) => 
-          console.log(JSON.stringify(_array)))});
+          'select * from settings',
+          [],(_,{rows:{_array}}) => console.log(JSON.stringify(_array))
+        )}
+      );
           
-      return (
+    return (
         <View style={styles.container}>
           {Platform.OS === 'ios' && <StatusBar barStyle="default" />}
           <AppNavigator />
