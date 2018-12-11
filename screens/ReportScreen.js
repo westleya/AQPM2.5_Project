@@ -7,7 +7,7 @@ import {
   AppRegistry,
   Image,
 } from 'react-native';
-import moment from 'moment';
+import moment, {diff} from 'moment';
 import { AreaChart, LineChart, Grid, YAxis, XAxis } from 'react-native-svg-charts';
 import {G, Line, LinearGradient, Stop, Defs} from 'react-native-svg';
 import {SQLite,} from 'expo';
@@ -33,7 +33,7 @@ export default class ReportScreen extends Component {
 
     this.state = {
       total_exposure_text: "Total Exposure: ",
-      average_exposure_text:"Average PM2.5 Level: ",
+      average_pm25_level_text:"Average PM2.5 Level: ",
       current_exposure_text:"Current PM2.5 Level: ",
       timeframe:"",
       data:null};
@@ -102,30 +102,40 @@ export default class ReportScreen extends Component {
     // the AQ&U api is from most recent data to least recent. So, I have to invert the order.
     length_data = data.length;
     total_exposure = 0.0;
-    average_exposure = 0.0;
+    average_pm25_level = 0.0;
+    time_in_sec = moment(data[0].time, "YYYY-MM-DD-HH:mm:ss").
+    diff(moment(data[length_data - 1].time, "YYYY-MM-DD-HH:mm:ss")) / 1000;
 
     for( let i = length_data - 1; i >= 0; i--) {
+
       pm_25 = data[i].pm25;
-      total_exposure += pm_25 * breathing_rate * 60;
-      average_exposure += pm_25;
       pm_data.push(pm_25);
+      curr_time = moment(data[i].time, "YYYY-MM-DD-HH:mm:ss");
+
+      if( i > 0){
+        total_exposure += ((pm_25 + data[i-1].pm25) / 2) * breathing_rate * (
+                          moment(moment(data[i - 1].time, "YYYY-MM-DD-HH:mm:ss").diff(curr_time) / 1000));
+      }
+
       if(i % (length_data / 6) == 0) {
         if(this.state.timeframe === 'day'){
-          timeframe_data.push(parseInt(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("hh")) + ':00');
+          timeframe_data.push(parseInt(curr_time.format("hh")) + ':00');
         }
         else if(this.state.timeframe === 'week') {
-          timeframe_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("ddd"));
+          timeframe_data.push(curr_time.format("ddd"));
         }
         else if(this.state.timeframe === 'month'){
-          timeframe_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("D"));
+          timeframe_data.push(parseInt(curr_time.format("DD")));
         }
         else{
-          timeframe_data.push(moment(data[i].time, "YYYY-MM-DD-HH:mm:ss").format("MMM"));
+          timeframe_data.push(curr_time.format("MMM"));
         }
       }
     }
-    average_exposure = average_exposure / length_data;
-    console.log(data);    
+    average_pm25_level = total_exposure / (time_in_sec * breathing_rate);
+    // console.log(data);  
+    // console.log(time_in_sec);
+  
     return (
       // Display the data
       <View style={{padding:20, marginTop:20 }}>
@@ -175,8 +185,8 @@ export default class ReportScreen extends Component {
       <Text/>
       <Text/>
       <Text style = {styles.getStartedText} >
-          {this.state.average_exposure_text}
-          {Math.round(average_exposure * 10) / 10} 
+          {this.state.average_pm25_level_text}
+          {Math.round(average_pm25_level * 10) / 10} 
           {" µg / m³"}
       </Text>
       <Text/>

@@ -3,15 +3,15 @@ import {  StyleSheet, Platform } from 'react-native';
 import { createStackNavigator, createBottomTabNavigator } from 'react-navigation';
 
 import TabBarIcon from '../components/TabBarIcon';
-import HomeScreen from '../screens/ReportScreen';
+import ReportScreen from '../screens/ReportScreen';
 import FAQScreen from '../screens/FAQScreeen';
 import SettingsScreen from '../screens/SettingsScreen';
 
-const HomeStack = createStackNavigator({
-  Home: HomeScreen,
+const ReportStack = createStackNavigator({
+  Report: ReportScreen,
 });
 
-HomeStack.navigationOptions = {
+ReportStack.navigationOptions = {
   tabBarLabel: 'Report',
   tabBarIcon: ({ focused }) => (
     <TabBarIcon
@@ -21,6 +21,20 @@ HomeStack.navigationOptions = {
           ? `ios-stats${focused ? '' : '-outline'}`
           : 'md-stats'
       }
+    />
+  ),
+};
+
+const SettingsStack = createStackNavigator({
+  Settings: SettingsScreen,
+});
+
+SettingsStack.navigationOptions = {
+  tabBarLabel: 'Settings',
+  tabBarIcon: ({ focused }) => (
+    <TabBarIcon
+      focused={focused}
+      name={Platform.OS === 'ios' ? `ios-options${focused ? '' : '-outline'}` : 'md-options'}
     />
   ),
 };
@@ -40,24 +54,10 @@ FAQStack.navigationOptions = {
   ),
 };
 
-const SettingsStack = createStackNavigator({
-  Settings: SettingsScreen,
-});
-
-SettingsStack.navigationOptions = {
-  tabBarLabel: 'Settings',
-  tabBarIcon: ({ focused }) => (
-    <TabBarIcon
-      focused={focused}
-      name={Platform.OS === 'ios' ? `ios-options${focused ? '' : '-outline'}` : 'md-options'}
-    />
-  ),
-};
-
 export default createBottomTabNavigator({
-  HomeStack,
-  FAQStack,
+  ReportStack,
   SettingsStack,
+  FAQStack,
 },{ tabBarOptions: {
   style: {
     backgroundColor:"#2B2B2B"

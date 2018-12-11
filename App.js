@@ -34,7 +34,7 @@ export default class App extends React.Component {
            AsyncStorage.setItem('alreadyLaunched', 'true'); // No need to wait for `setItem` to finish, although you might want to handle errors
            db.transaction(tx => {
             tx.executeSql('create table if not exists settings (timeframe text, accuracy text, frequency int, notifications int);');
-            tx.executeSql('create table if not exists locationdata (timestamp datetime, latitude double, longitude double);');
+            tx.executeSql('create table if not exists locationdata (timestamp datetime, latitude double, longitude double, pm25 double);');
             tx.executeSql('insert into settings (timeframe, accuracy, frequency, notifications) values ("day", "low", 15, 0);');
           });
       }
@@ -178,6 +178,5 @@ export default class App extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    fillColor: '#2B2B2B',
   },
 });
