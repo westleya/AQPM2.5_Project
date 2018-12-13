@@ -8,29 +8,28 @@ import {
   Image,
 } from 'react-native';
 import moment, {diff} from 'moment';
-import { AreaChart, LineChart, Grid, YAxis, XAxis } from 'react-native-svg-charts';
+import { AreaChart, LineChart, YAxis, XAxis } from 'react-native-svg-charts';
 import {G, Line, LinearGradient, Stop, Defs} from 'react-native-svg';
 import {SQLite,} from 'expo';
 
 // Documentation for the svg charts I used to show the data:
 // https://github.com/JesperLekland/react-native-svg-charts-examples/blob/master/storybook/stories/both-axes.js
+// Where all our PM data is obtained
+// The location is the SE corner of liberty park
+const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=40.741830&location_lng=-111.871227&start=";
+// missing: "YYYY-MM-DDTHH:MM:SSZ" &end= "YYYY-MM-DDTHH:MM:SSZ" (timeframe)
+// Added just before making the fetch to acquire data from the server.
 
 const breathing_rate = .0001; // in cubic meters per second.
-// Where all our data is obtained
-const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=40.78756024557722&location_lng=-111.84837341308594&start=";
-// missing: "2018-07-08T15:26:05Z" &end= "2018-07-09T15:26:05Z". (timeframe)
-// Added just before making the fetch, acquired from the db.
 // Open the database
 const db = SQLite.openDatabase('db.db');
-
-// TODO: get the phone's gps
-
 
 export default class ReportScreen extends Component {
 
   constructor(props) {
     super(props);
 
+    // Screen related variables. Timeframe and data are subject to change.
     this.state = {
       total_exposure_text: "Total Exposure: ",
       average_pm25_level_text:"Average PM2.5 Level: ",
@@ -40,7 +39,7 @@ export default class ReportScreen extends Component {
 
   }
 
-  //AQ&U logo
+  //AQ&U logo at the top-center of screen
   static navigationOptions = {
     headerTitle: (
     <Image 
@@ -49,37 +48,62 @@ export default class ReportScreen extends Component {
     ),
   };
 
-  componentDidMount() {
-
+  // The following code will be added as soon as Expo rolls out background location tracking:
+  // start_time = moment().subtract(1, this.state.timeframe).format();
+  // db.transaction(tx=>
+  //   {tx.executeSql(
+  //     'select (timestamp as time, pm25) from locationdata where timestamp >= ? order by timestamp desc;',
+  //     start_time,(_,{rows:{_array}}) => 
+  //     { this.setState({ data: _array})
+  //     });
+  //   });
+  componentDidMount() {    
+    
     present = moment().format();
     present_formatted = present.substring(0, 19) + 'Z';
     past = "";
     APIurlTotal = "";
 
-    //Get data from the server. It's ordered most recent to least recent
+    //Get data from the database. It's ordered most recent to least recent
     return db.transaction(tx=>
-      {tx.executeSql(
-        'select timeframe from settings;',
-        [],(_,{rows:{_array}}) => 
-        {this.state.timeframe = _array[0].timeframe;
-          past = moment().subtract(1, this.state.timeframe).format();
-          past_formatted = past.substring(0, 19) + 'Z';
-          APIurlTotal = APIurl + past_formatted + "&end=" + present_formatted;
-          fetch(APIurlTotal)
-          .then(response => response.json())
-          .then(responseJson =>{ this.setState({ data: responseJson})});
-        });
-      });
+       {tx.executeSql(
+         'select timeframe from settings;',
+         [],(_,{rows:{_array}}) => 
+         {this.state.timeframe = _array[0].timeframe;
+          console.log(this.state.timeframe);
+           past = moment().subtract(1, this.state.timeframe).format();
+           past_formatted = past.substring(0, 19) + 'Z';
+           APIurlTotal = APIurl + past_formatted + "&end=" + present_formatted;
+           console.log(APIurlTotal);
+
+           fetch(APIurlTotal)
+           .then(response => response.json())
+           .then(responseJson =>{ this.setState({ data: responseJson})});
+         });
+       });
   }
 
   render() {
     if(!this.state.data) {
       // Generic loading screen
       return (
-        <Text style={{alignSelf:'center', paddingTop:250, fontSice:20}}>Loading...</Text>
+        <View>
+          <Text style={{alignSelf:'center', paddingTop:250, fontSize:20}}>Loading...</Text>
+          <Text style = {{alignSelf:'center', paddingTop:50, fontSize:12}}> 
+            If the app's been recently downloaded there may be no data.
+          </Text>
+          <Text style = {{alignSelf:'center', fontSize:12}}> 
+            Try back in a few minutes.
+          </Text>
+          <Text style = {{alignSelf:'center', fontSize:12}}> 
+            Requests for data from a year ago may take a few minutes to show.
+          </Text>
+        </View>
+
       );
     }
     // Gets data we've loaded from the AQ&U API
+    console.log(this.state.data);
     const { data } = this.state;
 
     // Arrays for axis ticks and chart data
@@ -113,7 +137,7 @@ export default class ReportScreen extends Component {
       curr_time = moment(data[i].time, "YYYY-MM-DD-HH:mm:ss");
 
       if( i > 0){
-        total_exposure += ((pm_25 + data[i-1].pm25) / 2) * breathing_rate * (
+        total_exposure += ((pm_25 + data[i-1].pm25) / 2) * (
                           moment(moment(data[i - 1].time, "YYYY-MM-DD-HH:mm:ss").diff(curr_time) / 1000));
       }
 
@@ -132,7 +156,8 @@ export default class ReportScreen extends Component {
         }
       }
     }
-    average_pm25_level = total_exposure / (time_in_sec * breathing_rate);
+    average_pm25_level = total_exposure / (time_in_sec);
+    total_exposure *= breathing_rate;
     // console.log(data);  
     // console.log(time_in_sec);
   

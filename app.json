@@ -2,11 +2,14 @@
   "expo": {
     "name": "Personal Air Quality Exposure",
     "description": "Shows a report of your PM2.5 exposure",
-    "icon":"./assets/images/title.png",
-    "slug": "AQ&UProject",
+    "icon": "./assets/images/title.png",
+    "slug": "AQUProject",
     "privacy": "public",
     "sdkVersion": "31.0.0",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "splash": {
@@ -21,11 +24,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier":"com.universityofutah.airqualitytracker"
+      "supportsTablet": true
     },
-    "android":{
-      "package":"com.universityofutah.airqualitytracker"
-    }
+    "scheme": "exp8721d1d78443480cafb4743e590353b5"
   }
 }

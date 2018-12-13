@@ -1,18 +1,20 @@
-import React from 'react';
-import { Platform, StatusBar, StyleSheet, View } from 'react-native';
-import Expo, { Constants, Location, Permissions, SQLite, WebBrowser, AppLoading, Asset, Font, Icon } from 'expo';
+import React, {Component} from 'react';
+import {AsyncStorage, Platform, StatusBar, StyleSheet, View, Alert } from 'react-native';
+import Expo, {TaskManager, Constants, Location, Permissions, SQLite, WebBrowser, AppLoading, Asset, Font, Icon } from 'expo';
 import AppNavigator from './navigation/AppNavigator';
-import {AsyncStorage} from 'react-native';
-//import BackgroundGeolocation from 'react-native-background-geolocation';
+import moment, {diff} from 'moment';
+import BackgroundGeolocation from 'react-native-mauron85-background-geolocation';
 
 // Make/open a database depending on whether it already exists
 const db = SQLite.openDatabase('db.db');
-// class LocationData extends React.Component {
+// Where all our PM data is obtained
+// Will be made use of once Expo rolls out their background location tracking
+const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=";
+// missing: "YYYY-MM-DDTHH:MM:SSZ" &end= "YYYY-MM-DDTHH:MM:SSZ" (timeframe)
+// Added just before making the fetch to acquire data from the server.
 
-// }
 
-
-export default class App extends React.Component {
+export default class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -20,13 +22,25 @@ export default class App extends React.Component {
     };
   }
 
-
-  // console.log(JSON.stringify(_array));
-  // if( _array[0].count < 1) { 
-  //   db.transaction(tx => {
-  //   tx.executeSql(';');
-  //   });
-  // };
+  // this code will be added once expo rolls out background tracking:
+  // present = moment().format().substring(0, 19) + 'Z';
+  // past = moment().subtract(BackgroundGeolocation.activitiesInterval / 1000, 'seconds').
+  //        format().substring(0,19) + 'Z';
+  // APIurlTotal = APIurl + location.latitude + "&location_lng=" + 
+  //               location.longitude + "&start=" + past + "&end=" + present;
+  // fetch(APIurlTotal)
+  // .then(response => response.json())
+  // .then(responseJson =>{ 
+  //   console.log(JSON.stringify(responseJson));
+  //   parameters = [];
+  //   for(i = 0; i < responseJson.length; i++){
+  //     parameters.push(responseJson[i].time, location.latitude, location.longitude, responseJson[i].pm25 );
+  //     db.transaction(tx => {
+  //       tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
+  //                     ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
+  //                     + parameters[0], parameters);
+  //     });
+  //   }
   componentDidMount() {
     // Create settings and locationdata tables with corresponding columns.
     AsyncStorage.getItem("alreadyLaunched").then(value => {
@@ -35,90 +49,17 @@ export default class App extends React.Component {
            db.transaction(tx => {
             tx.executeSql('create table if not exists settings (timeframe text, accuracy text, frequency int, notifications int);');
             tx.executeSql('create table if not exists locationdata (timestamp datetime, latitude double, longitude double, pm25 double);');
+            // default settings can be updated by user in settings screen
             tx.executeSql('insert into settings (timeframe, accuracy, frequency, notifications) values ("day", "low", 15, 0);');
           });
       }
       });
 
   }
-  // Code pulled from https://www.npmjs.com/package/react-native-background-geolocation
-  componentWillMount() {
 
-    /*
-    //
-    // 1.  Wire up event-listeners
-    //
- 
-    // This handler fires whenever bgGeo receives a location update.
-    BackgroundGeolocation.onLocation(this.onLocation, this.onError);
- 
-    // This handler fires when movement states changes (stationary->moving; moving->stationary)
-    BackgroundGeolocation.onMotionChange(this.onMotionChange);
- 
-    // This event fires when a change in motion activity is detected
-    BackgroundGeolocation.oActivityChange(this.onActivityChange);
- 
-    // This event fires when the user toggles location-services authorization
-    BackgroundGeolocation.onProviderChange(this.onProviderChange);
- 
-    //
-    // 2.  Execute #ready method (required)
-    //
-    BackgroundGeolocation.ready({
-      // Geolocation Config
-      desiredAccuracy: BackgroundGeolocation.DESIRED_ACCURACY_MEDIUM,
-      distanceFilter: 10,
-      // Activity Recognition
-      stopTimeout: 1,
-      // Application config
-      debug: true, // <-- enable this hear sounds for background-geolocation life-cycle.
-      logLevel: BackgroundGeolocation.LOG_LEVEL_VERBOSE,
-      stopOnTerminate: false,   // <-- Allow the background-service to continue tracking when user closes the app.
-      startOnBoot: true,        // <-- Auto start tracking when device is powered-up.
-      // HTTP / SQLite config
-      url: 'http://yourserver.com/locations',
-      batchSync: false,       // <-- [Default: false] Set true to sync locations to server in a single HTTP request.
-      autoSync: true,         // <-- [Default: true] Set true to sync each location to server as it arrives.
-      headers: {              // <-- Optional HTTP headers
-        "X-FOO": "bar"
-      },
-      params: {               // <-- Optional HTTP params
-        "auth_token": "maybe_your_server_authenticates_via_token_YES?"
-      }
-    }, (state) => {
-      console.log("- BackgroundGeolocation is configured and ready: ", state.enabled);
- 
-      if (!state.enabled) {
-        //
-        // 3. Start tracking!
-        //
-        BackgroundGeolocation.start(function() {
-          console.log("- Start success");
-        });
-      }
-    });*/
-  }
-
-  // You must remove listeners when your component unmounts
-  /*
   componentWillUnmount() {
-    BackgroundGeolocation.removeAllListeners();
+    // unregister all event listeners
   }
-  onLocation(location) {
-    console.log('[location] -', location);
-  }
-  onError(error) {
-    console.warn('[location] ERROR -', error);
-  }
-  onActivityChange(event) {
-    console.log('[activitychange] -', event);  // eg: 'on_foot', 'still', 'in_vehicle'
-  }
-  onProviderChange(provider) {
-    console.log('[providerchange] -', provider.enabled, provider.status);
-  }
-  onMotionChange(event) {
-    console.log('[motionchange] -', event.isMoving, event.location);
-  }*/
 
   render() {
     console.log('this');

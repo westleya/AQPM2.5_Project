@@ -24,7 +24,7 @@ export default class FAQScreen extends Component {
     }
   }
 
-  //AQ&U logo
+  //AQ&U logo at the top-center of screen
   static navigationOptions = {
     headerTitle: (
     <Image 
