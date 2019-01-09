@@ -48,7 +48,7 @@ export default class App extends Component {
            AsyncStorage.setItem('alreadyLaunched', 'true'); // No need to wait for `setItem` to finish, although you might want to handle errors
            db.transaction(tx => {
             tx.executeSql('create table if not exists settings (timeframe text, accuracy text, frequency int, notifications int);');
-            tx.executeSql('create table if not exists locationdata (timestamp datetime, latitude double, longitude double, pm25 double);');
+            tx.executeSql('create table if not exists locationdata (timestamp datetime primary key, latitude double, longitude double, pm25 double);');
             // default settings can be updated by user in settings screen
             tx.executeSql('insert into settings (timeframe, accuracy, frequency, notifications) values ("day", "low", 15, 0);');
           });
