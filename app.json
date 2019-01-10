@@ -2,10 +2,10 @@
   "expo": {
     "name": "Personal Air Quality Exposure",
     "description": "Shows a report of your PM2.5 exposure",
-    "icon": "./assets/images/title.png",
+    "icon": "./assets/images/title2.png",
     "slug": "AQUProject",
     "privacy": "public",
-    "sdkVersion": "31.0.0",
+    "sdkVersion": "32.0.0",
     "platforms": [
       "ios",
       "android"
@@ -24,7 +24,13 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ]
+      }
     },
     "scheme": "exp8721d1d78443480cafb4743e590353b5"
   }

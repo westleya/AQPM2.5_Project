@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import {AsyncStorage, Platform, StatusBar, StyleSheet, View, Alert } from 'react-native';
-import Expo, {TaskManager, Constants, Location, Permissions, SQLite, WebBrowser, AppLoading, Asset, Font, Icon } from 'expo';
+import {TaskManager, Constants, Location, Permissions, SQLite, WebBrowser, AppLoading, Asset, Font, Icon } from 'expo';
 import AppNavigator from './navigation/AppNavigator';
 import moment, {diff} from 'moment';
 import BackgroundGeolocation from 'react-native-mauron85-background-geolocation';
