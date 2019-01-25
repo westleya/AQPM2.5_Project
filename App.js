@@ -1,18 +1,106 @@
 import React, {Component} from 'react';
 import {AsyncStorage, Platform, StatusBar, StyleSheet, View, Alert } from 'react-native';
 import {TaskManager, Constants, Location, Permissions, SQLite, WebBrowser, AppLoading, Asset, Font, Icon } from 'expo';
-import AppNavigator from './navigation/AppNavigator';
-import moment, {diff} from 'moment';
-import BackgroundGeolocation from 'react-native-mauron85-background-geolocation';
+import {
+  createStackNavigator,
+  createAppContainer,
+  createBottomTabNavigator 
+} from 'react-navigation';
+import TabBarIcon from './components/TabBarIcon';
+import ReportScreen from './screens/ReportScreen';
+import FAQScreen from './screens/FAQScreeen';
+import SettingsScreen from './screens/SettingsScreen';
 
-// Make/open a database depending on whether it already exists
+const LOCATION_TASK_NAME = 'background-location-task';
+
+// Make/open a database. (depending on whether it already exists)
 const db = SQLite.openDatabase('db.db');
-// Where all our PM data is obtained
-// Will be made use of once Expo rolls out their background location tracking
+// The APIurl is where all our PM data is obtained.
 const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=";
-// missing: "YYYY-MM-DDTHH:MM:SSZ" &end= "YYYY-MM-DDTHH:MM:SSZ" (timeframe)
+// missing: "YYYY-MM-DDTHH:MM:SSZ", "&end="", and "YYYY-MM-DDTHH:MM:SSZ" (w/o "". timeframe)
 // Added just before making the fetch to acquire data from the server.
 
+////////////////// TAB NAVIGATION //////////////////////
+// The following section is for navigating from screen//
+// to screen. The newest version of React Native has  //
+// moved navigation out of its own folder and into the//
+// App.js file.                                       //
+// An icon and a button is created that will pull up  //
+// the corresponding screen when pressed.             //
+////////////////////////////////////////////////////////
+
+const ReportStack = createStackNavigator({
+  Report: ReportScreen,
+});
+
+ReportStack.navigationOptions = {
+  tabBarLabel: 'Report',
+  tabBarIcon: ({ focused }) => (
+    <TabBarIcon
+      focused={focused}
+      name={
+        Platform.OS === 'ios'
+          ? `ios-stats`
+          : 'md-stats'
+      }
+    />
+  ),
+};
+
+const SettingsStack = createStackNavigator({
+  Settings: SettingsScreen,
+});
+
+SettingsStack.navigationOptions = {
+  tabBarLabel: 'Settings',
+  tabBarIcon: ({ focused }) => (
+    <TabBarIcon
+      focused={focused}
+      name={Platform.OS === 'ios' ? `ios-settings` : 'settings'}
+    />
+  ),
+};
+
+const FAQStack = createStackNavigator({
+  FAQ: FAQScreen,
+});
+
+FAQStack.navigationOptions = {
+  tabBarLabel: 'FAQ',
+  tabBarIcon: ({ focused }) => (
+    <TabBarIcon
+      focused={focused}
+      name={Platform.OS === 'ios' ? `ios-information-circle` 
+      : 'information-circle'}
+    />
+  ),
+};
+
+const AppNavigator = createBottomTabNavigator({
+  ReportStack,
+  SettingsStack,
+  FAQStack,
+},{ tabBarOptions: {
+  style: {
+    backgroundColor:"#2B2B2B"
+  },
+}});
+
+const AppContainer = createAppContainer(AppNavigator);
+
+/////////// END TAB NAVIGATION ////////////
+
+////////////// APP CREATION ///////////////
+// App creation includes implementation  //
+// of any code (e.g. database creation)  //
+// that's desired to only run once. Most //
+// of said code is implemented in the    //
+// componentDidMount() method.           //
+// The render() method creates a frame/  //
+// skeleton of the app for the screens to//
+// fill in. It's also responsible for the//
+// loading screen and the app's icon.    //
+///////////////////////////////////////////
 
 export default class App extends Component {
   constructor(props) {
@@ -66,7 +154,7 @@ export default class App extends Component {
 
     if (!this.state.isLoadingComplete && !this.props.skipLoadingScreen) {
       return (
-        <AppLoading
+        <AppContainer
           startAsync={this._loadResourcesAsync}
           onError={this._handleLoadingError}
           onFinish={this._handleFinishLoading}
@@ -82,10 +170,11 @@ export default class App extends Component {
       );
           
     return (
+      <AppContainer>
         <View style={styles.container}>
           {Platform.OS === 'ios' && <StatusBar barStyle="default" />}
-          <AppNavigator />
         </View>
+      </AppContainer>
       );
     }
   }
@@ -120,4 +209,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+});
+/////////////// END APP CREATION //////////////
+
+
+const { Location, Permissions } = Expo;
+// permissions returns only for location permissions on iOS and under certain conditions, see Expo.Permissions.LOCATION
+const { status, permissions } = await Permissions.askAsync(Permissions.LOCATION);
+if (status === 'granted') {
+  await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+    accuracy: Location.Accuracy.Balanced,
+  });
+  } else {
+  throw new Error('Location permission not granted');
+}
+
+TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
+  if (error) {
+    // Error occurred - check `error.message` for more details.
+    return;
+  }
+  if (data) {
+    const { locations } = data;
+    // do something with the locations captured in the background
+  }
 });
