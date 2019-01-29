@@ -6,6 +6,7 @@ import {
   createAppContainer,
   createBottomTabNavigator 
 } from 'react-navigation';
+import moment, {diff} from 'moment';
 import TabBarIcon from './components/TabBarIcon';
 import ReportScreen from './screens/ReportScreen';
 import FAQScreen from './screens/FAQScreeen';
@@ -56,7 +57,7 @@ SettingsStack.navigationOptions = {
   tabBarIcon: ({ focused }) => (
     <TabBarIcon
       focused={focused}
-      name={Platform.OS === 'ios' ? `ios-settings` : 'settings'}
+      name={Platform.OS === 'ios' ? `ios-settings` : 'md-settings'}
     />
   ),
 };
@@ -71,7 +72,7 @@ FAQStack.navigationOptions = {
     <TabBarIcon
       focused={focused}
       name={Platform.OS === 'ios' ? `ios-information-circle` 
-      : 'information-circle'}
+      : 'md-information-circle'}
     />
   ),
 };
@@ -107,43 +108,41 @@ export default class App extends Component {
     super(props);
     this.state = {
       isLoadingComplete: false,
+      location: null,
     };
   }
 
-  // this code will be added once expo rolls out background tracking:
-  // present = moment().format().substring(0, 19) + 'Z';
-  // past = moment().subtract(BackgroundGeolocation.activitiesInterval / 1000, 'seconds').
-  //        format().substring(0,19) + 'Z';
-  // APIurlTotal = APIurl + location.latitude + "&location_lng=" + 
-  //               location.longitude + "&start=" + past + "&end=" + present;
-  // fetch(APIurlTotal)
-  // .then(response => response.json())
-  // .then(responseJson =>{ 
-  //   console.log(JSON.stringify(responseJson));
-  //   parameters = [];
-  //   for(i = 0; i < responseJson.length; i++){
-  //     parameters.push(responseJson[i].time, location.latitude, location.longitude, responseJson[i].pm25 );
-  //     db.transaction(tx => {
-  //       tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
-  //                     ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
-  //                     + parameters[0], parameters);
-  //     });
-  //   }
   componentDidMount() {
     // Create settings and locationdata tables with corresponding columns.
     AsyncStorage.getItem("alreadyLaunched").then(value => {
       if(value == null){
-           AsyncStorage.setItem('alreadyLaunched', 'true'); // No need to wait for `setItem` to finish, although you might want to handle errors
-           db.transaction(tx => {
+        AsyncStorage.setItem('alreadyLaunched', 'true'); // No need to wait for `setItem` to finish, although you might want to handle errors
+          db.transaction(tx => {
             tx.executeSql('create table if not exists settings (timeframe text, accuracy text, frequency int, notifications int);');
             tx.executeSql('create table if not exists locationdata (timestamp datetime primary key, latitude double, longitude double, pm25 double);');
             // default settings can be updated by user in settings screen
             tx.executeSql('insert into settings (timeframe, accuracy, frequency, notifications) values ("day", "low", 15, 0);');
           });
       }
-      });
-
+    });
+    this.getLocationAsync();
   }
+
+  getLocationAsync = async () => {
+    const { status } = await Permissions.askAsync(Permissions.LOCATION);
+
+    if (status !== 'granted') {
+      this.setState({
+        errorMessage: 'Permission to access location was denied',
+      });
+      return;
+    }
+
+    await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+      accuracy: Location.Accuracy.Highest,
+      timeInterval: 300000,
+    });
+  };
 
   componentWillUnmount() {
     // unregister all event listeners
@@ -212,18 +211,6 @@ const styles = StyleSheet.create({
 });
 /////////////// END APP CREATION //////////////
 
-
-const { Location, Permissions } = Expo;
-// permissions returns only for location permissions on iOS and under certain conditions, see Expo.Permissions.LOCATION
-const { status, permissions } = await Permissions.askAsync(Permissions.LOCATION);
-if (status === 'granted') {
-  await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-    accuracy: Location.Accuracy.Balanced,
-  });
-  } else {
-  throw new Error('Location permission not granted');
-}
-
 TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   if (error) {
     // Error occurred - check `error.message` for more details.
@@ -231,6 +218,31 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   }
   if (data) {
     const { locations } = data;
-    // do something with the locations captured in the background
+
+    console.log(locations);
+    console.log(locations[0]);
+    console.log(locations[0].coords);
+    console.log(locations[0].coords.latitude);
+
+    present = moment().format().substring(0, 19) + 'Z';
+    past = moment().subtract(300, 'seconds').
+         format().substring(0,19) + 'Z';
+    APIurlTotal = APIurl + locations[0].coords.latitude + "&location_lng=" + 
+          locations[0].coords.longitude + "&start=" + past + "&end=" + present;
+    console.log(APIurlTotal);
+    fetch(APIurlTotal)
+      .then(response => response.json())
+      .then(responseJson =>{ 
+        console.log(JSON.stringify(responseJson));
+        parameters = [];
+        for(i = 0; i < responseJson.length; i++){
+          parameters.push(responseJson[i].time, locations[0].coords.latitude, locations[0].coords.longitude, responseJson[i].pm25 );
+          db.transaction(tx => {
+            tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
+                      ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
+                      + parameters[0], parameters);
+          });
+        }   
+    })
   }
-});
+})

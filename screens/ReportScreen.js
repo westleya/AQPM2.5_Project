@@ -10,15 +10,11 @@ import {
 import moment, {diff} from 'moment';
 import { AreaChart, LineChart, YAxis, XAxis } from 'react-native-svg-charts';
 import {G, Line, LinearGradient, Stop, Defs} from 'react-native-svg';
-import {SQLite,} from 'expo';
+import {SQLite, Location} from 'expo';
 
+const LOCATION_TASK_NAME = 'background-location-task';
 // Documentation for the svg charts I used to show the data:
 // https://github.com/JesperLekland/react-native-svg-charts-examples/blob/master/storybook/stories/both-axes.js
-// Where all our PM data is obtained
-// The location is the SE corner of liberty park
-const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=40.741830&location_lng=-111.871227&start=";
-// missing: "YYYY-MM-DDTHH:MM:SSZ" &end= "YYYY-MM-DDTHH:MM:SSZ" (timeframe)
-// Added just before making the fetch to acquire data from the server.
 
 const breathing_rate = .0001; // in cubic meters per second.
 // Open the database
@@ -34,7 +30,7 @@ export default class ReportScreen extends Component {
       total_exposure_text: "Total Exposure: ",
       average_pm25_level_text:"Average PM2.5 Level: ",
       current_exposure_text:"Current PM2.5 Level: ",
-      timeframe:"",
+      timeframe:"day",
       data:null};
 
   }
@@ -48,39 +44,24 @@ export default class ReportScreen extends Component {
     ),
   };
 
-  // The following code will be added as soon as Expo rolls out background location tracking:
-  // start_time = moment().subtract(1, this.state.timeframe).format();
-  // db.transaction(tx=>
-  //   {tx.executeSql(
-  //     'select (timestamp as time, pm25) from locationdata where timestamp >= ? order by timestamp desc;',
-  //     start_time,(_,{rows:{_array}}) => 
-  //     { this.setState({ data: _array})
-  //     });
-  //   });
   componentDidMount() {    
     
-    present = moment().format();
-    present_formatted = present.substring(0, 19) + 'Z';
-    past = "";
-    APIurlTotal = "";
+    console.log(Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME));
+    // moment is a library for different time formats. It always keeps
+    // the current time and you can get the previous day, week, month, etc.
+    // by subtracting the time you want. We want the timeframe the user has
+    // requested. e.g. moment().subtract(1, day) would be yesterday, where
+    // day is the timeframe they're requesting for the graph.
+    start_time = moment().subtract(1, this.state.timeframe).format();
 
     //Get data from the database. It's ordered most recent to least recent
-    return db.transaction(tx=>
-       {tx.executeSql(
-         'select timeframe from settings;',
-         [],(_,{rows:{_array}}) => 
-         {this.state.timeframe = _array[0].timeframe;
-          console.log(this.state.timeframe);
-           past = moment().subtract(1, this.state.timeframe).format();
-           past_formatted = past.substring(0, 19) + 'Z';
-           APIurlTotal = APIurl + past_formatted + "&end=" + present_formatted;
-           console.log(APIurlTotal);
-
-           fetch(APIurlTotal)
-           .then(response => response.json())
-           .then(responseJson =>{ this.setState({ data: responseJson})});
-         });
-       });
+    return  db.transaction(tx=>
+      {tx.executeSql(
+        'select (timestamp as time, pm25) from locationdata where timestamp >= ? order by timestamp desc;',
+        start_time,(_,{rows:{_array}}) => 
+        { this.setState({ data: _array})
+        });
+      });
   }
 
   render() {
