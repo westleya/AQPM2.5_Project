@@ -10,11 +10,16 @@ import {
 import moment, {diff} from 'moment';
 import { AreaChart, LineChart, YAxis, XAxis } from 'react-native-svg-charts';
 import {G, Line, LinearGradient, Stop, Defs} from 'react-native-svg';
-import {SQLite, Location} from 'expo';
+import {SQLite, Location, TaskManager} from 'expo';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 // Documentation for the svg charts I used to show the data:
 // https://github.com/JesperLekland/react-native-svg-charts-examples/blob/master/storybook/stories/both-axes.js
+
+// The APIurl is where all our PM data is obtained.
+const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=";
+// missing: "YYYY-MM-DDTHH:MM:SSZ", "&end="", and "YYYY-MM-DDTHH:MM:SSZ" (w/o "". timeframe)
+// Added just before making the fetch to acquire data from the server.
 
 const breathing_rate = .0001; // in cubic meters per second.
 // Open the database
@@ -45,8 +50,9 @@ export default class ReportScreen extends Component {
   };
 
   componentDidMount() {    
-    
-    console.log(Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME));
+
+    this.getLocationAsync();
+
     // moment is a library for different time formats. It always keeps
     // the current time and you can get the previous day, week, month, etc.
     // by subtracting the time you want. We want the timeframe the user has
@@ -63,6 +69,23 @@ export default class ReportScreen extends Component {
         });
       });
   }
+
+  getLocationAsync = async () => {
+    const { status } = await Permissions.askAsync(Permissions.LOCATION);
+
+    if (status !== 'granted') {
+      this.setState({
+        errorMessage: 'Permission to access location was denied',
+      });
+      return;
+    }
+
+    Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: 1000,
+      distanceInterval: 0,
+    });
+  };
 
   render() {
     if(!this.state.data) {

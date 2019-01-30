@@ -13,7 +13,6 @@ import FAQScreen from './screens/FAQScreeen';
 import SettingsScreen from './screens/SettingsScreen';
 
 const LOCATION_TASK_NAME = 'background-location-task';
-
 // Make/open a database. (depending on whether it already exists)
 const db = SQLite.openDatabase('db.db');
 // The APIurl is where all our PM data is obtained.
@@ -108,7 +107,6 @@ export default class App extends Component {
     super(props);
     this.state = {
       isLoadingComplete: false,
-      location: null,
     };
   }
 
@@ -125,10 +123,10 @@ export default class App extends Component {
           });
       }
     });
-    this.getLocationAsync();
+    this.getPermissionAsync();
   }
 
-  getLocationAsync = async () => {
+  getPermissionAsync = async () => {
     const { status } = await Permissions.askAsync(Permissions.LOCATION);
 
     if (status !== 'granted') {
@@ -137,19 +135,19 @@ export default class App extends Component {
       });
       return;
     }
-
-    await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-      accuracy: Location.Accuracy.Highest,
-      timeInterval: 300000,
+    
+    Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: 1000,
+      distanceInterval: 0,
     });
-  };
+  }
 
   componentWillUnmount() {
     // unregister all event listeners
   }
 
   render() {
-    console.log('this');
 
     if (!this.state.isLoadingComplete && !this.props.skipLoadingScreen) {
       return (
@@ -210,7 +208,6 @@ const styles = StyleSheet.create({
   },
 });
 /////////////// END APP CREATION //////////////
-
 TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   if (error) {
     // Error occurred - check `error.message` for more details.
@@ -230,19 +227,20 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
     APIurlTotal = APIurl + locations[0].coords.latitude + "&location_lng=" + 
           locations[0].coords.longitude + "&start=" + past + "&end=" + present;
     console.log(APIurlTotal);
-    fetch(APIurlTotal)
-      .then(response => response.json())
-      .then(responseJson =>{ 
-        console.log(JSON.stringify(responseJson));
-        parameters = [];
-        for(i = 0; i < responseJson.length; i++){
-          parameters.push(responseJson[i].time, locations[0].coords.latitude, locations[0].coords.longitude, responseJson[i].pm25 );
-          db.transaction(tx => {
-            tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
-                      ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
-                      + parameters[0], parameters);
-          });
-        }   
-    })
+
+    // fetch(APIurlTotal)
+    //   .then(response => response.json())
+    //   .then(responseJson =>{ 
+    //     console.log(JSON.stringify(responseJson));
+    //     parameters = [];
+    //     for(i = 0; i < responseJson.length; i++){
+    //       parameters.push(responseJson[i].time, locations[0].coords.latitude, locations[0].coords.longitude, responseJson[i].pm25 );
+    //       db.transaction(tx => {
+    //         tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
+    //                   ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
+    //                   + parameters[0], parameters);
+    //       });
+    //     }   
+    // });
   }
 })
