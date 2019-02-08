@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import {AsyncStorage, Platform, StatusBar, StyleSheet, View, Alert } from 'react-native';
-import {TaskManager, Constants, Location, Permissions, SQLite, WebBrowser, AppLoading, Asset, Font, Icon } from 'expo';
+import {BackgroundFetch, TaskManager, Constants, Location, Permissions, SQLite, WebBrowser, AppLoading, Asset, Font, Icon } from 'expo';
 import {
   createStackNavigator,
   createAppContainer,
@@ -12,6 +12,8 @@ import ReportScreen from './screens/ReportScreen';
 import FAQScreen from './screens/FAQScreeen';
 import SettingsScreen from './screens/SettingsScreen';
 
+// Required name(s) for task manager. The app receives periodic location updates
+// and makes requests for air quality data to the server in the background.
 const LOCATION_TASK_NAME = 'background-location-task';
 // Make/open a database. (depending on whether it already exists)
 const db = SQLite.openDatabase('db.db');
@@ -117,6 +119,7 @@ export default class App extends Component {
         AsyncStorage.setItem('alreadyLaunched', 'true'); // No need to wait for `setItem` to finish, although you might want to handle errors
           db.transaction(tx => {
             tx.executeSql('create table if not exists settings (timeframe text, accuracy text, frequency int, notifications int);');
+            // All timestamps will be unique
             tx.executeSql('create table if not exists locationdata (timestamp datetime primary key, latitude double, longitude double, pm25 double);');
             // default settings can be updated by user in settings screen
             tx.executeSql('insert into settings (timeframe, accuracy, frequency, notifications) values ("day", "low", 15, 0);');
@@ -138,7 +141,7 @@ export default class App extends Component {
     
     Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.BestForNavigation,
-      timeInterval: 1000,
+      timeInterval: 60000,
       distanceInterval: 0,
     });
   }
@@ -208,6 +211,12 @@ const styles = StyleSheet.create({
   },
 });
 /////////////// END APP CREATION //////////////
+
+// Checks for internet access - required to get air quality data - 
+// and checks that the location is within a certain range. The U
+// currently only servesthe wasatch front. So, latitude and 
+// longitude ranges are confined to that area.
+
 TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   if (error) {
     // Error occurred - check `error.message` for more details.
