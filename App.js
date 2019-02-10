@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import {AsyncStorage, Platform, StatusBar, StyleSheet, View, Alert } from 'react-native';
-import {BackgroundFetch, TaskManager, Constants, Location, Permissions, SQLite, WebBrowser, AppLoading, Asset, Font, Icon } from 'expo';
+import {BackgroundFetch, TaskManager, Constants, Location, Permissions, SQLite, WebBrowser,
+   AppLoading, Asset, Font, Icon, NetInfo } from 'expo';
 import {
   createStackNavigator,
   createAppContainer,
@@ -21,6 +22,16 @@ const db = SQLite.openDatabase('db.db');
 const APIurl = "https://air.eng.utah.edu/dbapi/api/getEstimatesForLocation?location_lat=";
 // missing: "YYYY-MM-DDTHH:MM:SSZ", "&end="", and "YYYY-MM-DDTHH:MM:SSZ" (w/o "". timeframe)
 // Added just before making the fetch to acquire data from the server.
+
+// The app only works for the wasatch front. So, there's a Long/Lat 
+// limit on its viability. The min/max for both are set at the outer
+// edge of the greatest concentration of sensors. While sensors exist
+// outside the wasatch front they're not supported by the app.
+const LONG_MAX = -111.0;
+const LONG_MIN = -112.6;
+const LAT_MAX = 41.9;
+const LAT_MIN =  39.9;
+
 
 ////////////////// TAB NAVIGATION //////////////////////
 // The following section is for navigating from screen//
@@ -220,6 +231,7 @@ const styles = StyleSheet.create({
 TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   if (error) {
     // Error occurred - check `error.message` for more details.
+    console.log(error.message);
     return;
   }
   if (data) {
@@ -237,11 +249,46 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
           locations[0].coords.longitude + "&start=" + past + "&end=" + present;
     console.log(APIurlTotal);
 
+    // Check for internet access. Check location is in bounds.
+    NetInfo.getConnectionInfo().then((connectionInfo) => {
+
+      parameters = [];
+      length_arr = locations.length;
+
+      for( i = 0; i < length_arr; i++) {
+
+        LAT_CURR = locations[i].coords.latitude;
+        LONG_CURR = loations[i].coords.longitude;
+
+        // If location(s) is/are out-of-bounds set air quality data to 0.
+        // Else, set the location with timestamp in the db if no internet access. (or unknown)
+        // We can get air quality data for the location later.
+        // Otherwise get data from the server and add it to the db.
+        if(LAT_CURR > LAT_MAX || LAT_CURR < LAT_MIN || LONG_CURR > LONG_MAX || LONG_CURR < LONG_MIN) {
+          parameters.push(locations[i].timestamp, LAT_CURR, LONG_CURR, 0.0);
+          db.transaction(tx => {
+            tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
+                    ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
+                    + parameters[0], parameters);
+          });
+        }
+        else if(connectionInfo.type == 'none' || connectionInfo.type == 'unknown'){
+          parameters.push(locations[i].timestamp, LAT_CURR, LONG_CURR, null);
+          db.transaction(tx => {
+            tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
+                    ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
+                    + parameters[0], parameters);
+          });
+        }
+        else {
+          
+        }
+      }
+    });
     // fetch(APIurlTotal)
     //   .then(response => response.json())
     //   .then(responseJson =>{ 
     //     console.log(JSON.stringify(responseJson));
-    //     parameters = [];
     //     for(i = 0; i < responseJson.length; i++){
     //       parameters.push(responseJson[i].time, locations[0].coords.latitude, locations[0].coords.longitude, responseJson[i].pm25 );
     //       db.transaction(tx => {
