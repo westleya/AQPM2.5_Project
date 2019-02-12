@@ -16,6 +16,7 @@ import SettingsScreen from './screens/SettingsScreen';
 // Required name(s) for task manager. The app receives periodic location updates
 // and makes requests for air quality data to the server in the background.
 const LOCATION_TASK_NAME = 'background-location-task';
+const WEB_TASK_NAME = 'background-web-task';
 // Make/open a database. (depending on whether it already exists)
 const db = SQLite.openDatabase('db.db');
 // The APIurl is where all our PM data is obtained.
@@ -155,10 +156,15 @@ export default class App extends Component {
       timeInterval: 60000,
       distanceInterval: 0,
     });
+
+    BackgroundFetch.registerTaskAsync(WEB_TASK_NAME);
+    BackgroundFetch.setMinimumIntervalAsync(300);
   }
 
   componentWillUnmount() {
     // unregister all event listeners
+    BackgroundFetch.unregisterTaskAsync();
+    Location.stopLocationUpdatesAsync();
   }
 
   render() {
@@ -223,11 +229,9 @@ const styles = StyleSheet.create({
 });
 /////////////// END APP CREATION //////////////
 
-// Checks for internet access - required to get air quality data - 
-// and checks that the location is within a certain range. The U
-// currently only servesthe wasatch front. So, latitude and 
+// Checks that the location is within a certain range. The U
+// currently only serves the wasatch front. So, latitude and 
 // longitude ranges are confined to that area.
-
 TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   if (error) {
     // Error occurred - check `error.message` for more details.
@@ -236,55 +240,35 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
   }
   if (data) {
     const { locations } = data;
+    parameters = [];
+    length_arr = locations.length;
 
-    console.log(locations);
-    console.log(locations[0]);
-    console.log(locations[0].coords);
-    console.log(locations[0].coords.latitude);
+    for(let i = 0; i < length_arr; i++) {
 
-    present = moment().format().substring(0, 19) + 'Z';
-    past = moment().subtract(300, 'seconds').
-         format().substring(0,19) + 'Z';
-    APIurlTotal = APIurl + locations[0].coords.latitude + "&location_lng=" + 
-          locations[0].coords.longitude + "&start=" + past + "&end=" + present;
-    console.log(APIurlTotal);
+      LAT_CURR = locations[i].coords.latitude;
+      LONG_CURR = loations[i].coords.longitude;
 
-    // Check for internet access. Check location is in bounds.
-    NetInfo.getConnectionInfo().then((connectionInfo) => {
-
-      parameters = [];
-      length_arr = locations.length;
-
-      for( i = 0; i < length_arr; i++) {
-
-        LAT_CURR = locations[i].coords.latitude;
-        LONG_CURR = loations[i].coords.longitude;
-
-        // If location(s) is/are out-of-bounds set air quality data to 0.
-        // Else, set the location with timestamp in the db if no internet access. (or unknown)
-        // We can get air quality data for the location later.
-        // Otherwise get data from the server and add it to the db.
-        if(LAT_CURR > LAT_MAX || LAT_CURR < LAT_MIN || LONG_CURR > LONG_MAX || LONG_CURR < LONG_MIN) {
-          parameters.push(locations[i].timestamp, LAT_CURR, LONG_CURR, 0.0);
-          db.transaction(tx => {
-            tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
-                    ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
-                    + parameters[0], parameters);
-          });
-        }
-        else if(connectionInfo.type == 'none' || connectionInfo.type == 'unknown'){
-          parameters.push(locations[i].timestamp, LAT_CURR, LONG_CURR, null);
-          db.transaction(tx => {
-            tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
-                    ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
-                    + parameters[0], parameters);
-          });
-        }
-        else {
-          
-        }
+      // If location(s) is/are out-of-bounds set air quality data to 0.
+      // Else, set the location with timestamp in the db.
+      // We can get air quality data for the location later.
+      if(LAT_CURR > LAT_MAX || LAT_CURR < LAT_MIN || LONG_CURR > LONG_MAX || LONG_CURR < LONG_MIN) {
+        parameters.push(locations[i].timestamp, LAT_CURR, LONG_CURR, 0.0);
+        db.transaction(tx => {
+          tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
+                  ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
+                  + parameters[0], parameters);
+        });
       }
-    });
+      else {
+        parameters.push(locations[i].timestamp, LAT_CURR, LONG_CURR, null);
+        db.transaction(tx => {
+          tx.executeSql('insert into locationdata (timestamp, latitude, longitude, pm25) values (' + parameters[0] + 
+                  ', ' + parameters[1] + ', ' + parameters[2] + ', ' + parameters[3] + ') where timestamp != ' 
+                  + parameters[0], parameters);
+        });
+      }
+
+      }
     // fetch(APIurlTotal)
     //   .then(response => response.json())
     //   .then(responseJson =>{ 
@@ -299,4 +283,52 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
     //     }   
     // });
   }
+})
+
+// Checks for internet access then acquires
+// air quality data from the server for corresponding
+// locations if there is internet access. Does nothing
+// otherwise.
+TaskManager.defineTask(WEB_TASK_NAME, () => {
+  // Check for internet access.
+  NetInfo.getConnectionInfo().then((connectionInfo) => {
+
+    if(connectionInfo.type == 'wifi' || connectionInfo.type == 'cellular'){
+      // Add all locations in the local db where pm2.5 is null to array.
+      // Delete them from local db. Send request for pm2.5 data for each
+      // recorded location. For most recent location send request for 
+      // from its timestamp until now. Add pm2.5 data points to db. 
+      // present = moment.format().substring(0,19) + 'Z';
+      db.transaction(tx=>
+        {tx.executeSql(
+          'select * from locationdata where pm2.5 is null order by timestamp asc;'
+          ).then(locations => {
+            length = locations.length;
+            // This could take a while if ever the device is without internet but in air 
+            // quality sensor range for long periods of time. Considering as this is
+            // unlikely I think I'm safe to proceed in this manner.
+            for(let i = 0; i < locations.length; i++) {
+              // if it's the last item in the array need to use current 
+              // time instead of next most recent data point.s
+              APIurlTotal = APIurl + locations[i].latitude + "&location_lng=" + 
+              locations[i].longitude + "&start=" + locations[i].timestamp + "Z&end=" + locations[i+1].timestamp + 'Z';
+              //make fetch then add to db.
+              try{
+  
+              }catch(error){
+                
+              }
+            }
+          })
+          tx.executeSql(
+            'delete * from locationdata where pm2.5 is null;'
+          )
+      });
+
+    }
+    else{
+      return;
+    }
+
+  });
 })

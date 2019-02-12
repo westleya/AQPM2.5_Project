@@ -63,7 +63,7 @@ export default class ReportScreen extends Component {
     //Get data from the database. It's ordered most recent to least recent
     return  db.transaction(tx=>
       {tx.executeSql(
-        'select (timestamp as time, pm25) from locationdata where timestamp >= ? order by timestamp desc;',
+        'select (timestamp as time, pm25) from locationdata where timestamp >= ? order by timestamp asc;',
         start_time,(_,{rows:{_array}}) => 
         { this.setState({ data: _array})
         });
@@ -126,15 +126,14 @@ export default class ReportScreen extends Component {
         </LinearGradient>
       </Defs>
     )
-    // Create an array of PM 2.5 data and time data. The data object passed from
-    // the AQ&U api is from most recent data to least recent. So, I have to invert the order.
+    // Create an array of PM 2.5 data and time data.
     length_data = data.length;
     total_exposure = 0.0;
     average_pm25_level = 0.0;
     time_in_sec = moment(data[0].time, "YYYY-MM-DD-HH:mm:ss").
     diff(moment(data[length_data - 1].time, "YYYY-MM-DD-HH:mm:ss")) / 1000;
 
-    for( let i = length_data - 1; i >= 0; i--) {
+    for( let i = 0; i < length_data;  i++) {
 
       pm_25 = data[i].pm25;
       pm_data.push(pm_25);
