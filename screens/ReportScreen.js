@@ -10,7 +10,9 @@ import {
 import moment, {diff} from 'moment';
 import { AreaChart, LineChart, YAxis, XAxis } from 'react-native-svg-charts';
 import {G, Line, LinearGradient, Stop, Defs} from 'react-native-svg';
-import {SQLite, Location, TaskManager} from 'expo';
+import * as TaskManager from 'expo-task-manager';
+import * as Location from 'expo-location';
+import { SQLite } from 'expo-sqlite';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 // Documentation for the svg charts I used to show the data:

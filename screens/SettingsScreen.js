@@ -6,7 +6,7 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
-import {SQLite,} from 'expo';
+import { SQLite } from 'expo-sqlite';
 
 // Open the database
 const db = SQLite.openDatabase('db.db');
