@@ -10,7 +10,7 @@ import {
 import moment, {diff} from 'moment';
 import TabBarIcon from './components/TabBarIcon';
 import ReportScreen from './screens/ReportScreen';
-import FAQScreen from './screens/FAQScreeen';
+import FAQScreen from './screens/FAQScreen';
 import SettingsScreen from './screens/SettingsScreen';
 
 // Required name(s) for task manager. The app receives periodic location updates
